@@ -37,6 +37,7 @@ SUBDIRS :=
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS +=  \
+../ball_move.c \
 ../repeat_filter.c \
 ../lcd.c \
 ../main.c
@@ -49,21 +50,25 @@ ASM_SRCS +=
 
 
 OBJS +=  \
+ball_move.o \
 repeat_filter.o \
 lcd.o \
 main.o
 
 OBJS_AS_ARGS +=  \
+ball_move.o \
 repeat_filter.o \
 lcd.o \
 main.o
 
 C_DEPS +=  \
+ball_move.d \
 repeat_filter.d \
 lcd.d \
 main.d
 
 C_DEPS_AS_ARGS +=  \
+ball_move.d \
 repeat_filter.d \
 lcd.d \
 main.d
@@ -82,6 +87,13 @@ LINKER_SCRIPT_DEP+=
 
 
 # AVR32/GNU C Compiler
+./ball_move.o: .././ball_move.c
+	@echo Building file: $<
+	@echo Invoking: AVR/GNU C Compiler : 5.4.0
+	$(QUOTE)C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avr8-gnu-toolchain\bin\avr-gcc.exe$(QUOTE)  -x c -funsigned-char -funsigned-bitfields -DDEBUG  -I"C:\Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.2.209\include"  -O1 -ffunction-sections -fdata-sections -fpack-struct -fshort-enums -g2 -Wall -mmcu=atmega328p -B "C:\Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.2.209\gcc\dev\atmega328p" -c -std=gnu99 -MD -MP -MF "$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)"   -o "$@" "$<" 
+	@echo Finished building: $<
+	
+
 ./repeat_filter.o: .././repeat_filter.c
 	@echo Building file: $<
 	@echo Invoking: AVR/GNU C Compiler : 5.4.0

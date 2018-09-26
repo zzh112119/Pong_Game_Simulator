@@ -1,4 +1,4 @@
-bool    ball_move(uint8_t ball, uint8_t paddle){
+/*bool    ball_move(uint8_t ball, uint8_t paddle){
 	
 	//update ball position
 	ball.x += ball.dx;
@@ -27,8 +27,9 @@ bool    ball_move(uint8_t ball, uint8_t paddle){
 	//game finish flag
 	bool game_finish;
 	
-	/*rebound judge*/
+	rebound judge*/
 	//ball hit boundary
+	/*
 	if((ball_left < 0) || (ball_right > 63)){
 		ball.dy = -ball.dy;
 	}
@@ -43,4 +44,4 @@ bool    ball_move(uint8_t ball, uint8_t paddle){
 	}
 	
 	return game_finish;
-}
+}*/

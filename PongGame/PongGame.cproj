@@ -122,6 +122,9 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="ball_move.c">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="repeat_filter.c">
       <SubType>compile</SubType>
     </Compile>

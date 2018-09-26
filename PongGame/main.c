@@ -21,7 +21,15 @@
 char displayChar = 0;
 char * a;
 
-uint8_t	direct;
+struct balls {
+	uint8_t x;
+	uint8_t y;
+	uint8_t dx;
+	uint8_t dy;
+	uint8_t r;
+	};
+
+struct balls ball;
 
 void init(void){
 	//setting up the GPIO for back light
@@ -74,17 +82,58 @@ void draw_background(void){
 
 void choose_mood(void){}
 
-int move_ball(int c,int x, int y){
+int move_ball(int c_ai, int c_pl){
+	//update ball position
+	ball.x += ball.dx;
+	ball.y += ball.dy;
 	
-	return c, x, y;
+	//ball boundary
+	uint8_t	ball_left = ball.y - ball.r;
+	uint8_t	ball_right = ball.y + ball.r;
+	uint8_t	ball_top = ball.x + ball.r;
+	uint8_t	ball_bottom = ball.x - ball.r;
+	
+	uint8_t	ai_paddle_top = 122 - 1;
+	uint8_t	ai_paddle_bottom = 122 + 1;
+	uint8_t	ai_paddle_left = c_ai + 5;
+	uint8_t	ai_paddle_right = c_ai - 5;
+	
+	uint8_t	player_paddle_top = 2 + 1;
+	uint8_t	player_paddle_bottom = 2 - 1;
+	uint8_t	player_paddle_left = c_pl - 5;
+	uint8_t	player_paddle_right = c_pl + 5;
+	
+	//hit judge flag
+	_Bool	hit_ai_paddle;
+	_Bool	hit_player_paddle;
+	
+	//game finish flag
+	_Bool	game_finish;
+	
+	/*rebound judge*/
+	//ball hit boundary
+	if((ball_left < 0) || (ball_right > 63)){
+		ball.dy = -ball.dy;
+	}
+	//ball hit paddle
+	hit_ai_paddle = (ball_top > ai_paddle_top)
+	&& (ball.y >= ai_paddle_right) && (ball.y <= ai_paddle_left);
+	
+	hit_player_paddle = (ball_bottom < player_paddle_top)
+	&& (ball.y <= player_paddle_left) && (ball.y >= player_paddle_right);
+	if(hit_ai_paddle || hit_player_paddle){
+		ball.dx = -ball.dx;
+	}
+	
+	return game_finish;
 }
 
-int move_paddle_ai(int c_ai, int c_ball[2]){
+int move_paddle_ai(int c_ai, int ball_y){
 	
-	if(c_ball[1] > c_ai){
+	if(ball_y > c_ai){
 		c_ai++;
 	}
-	else if(c_ball[1] < c_ai){
+	else if(ball_y < c_ai){
 		c_ai--;
 	}
 	
@@ -96,9 +145,9 @@ int move_paddle_pl(int b_c, int p_c){
 	return p_c;
 }
 
-void draw_now(int c_ai, int c_pl, int c_ball[2]){
+void draw_now(int c_ai, int c_pl, int ball_x, int ball_y){
 	
-	drawcircle(buff, c_ball[0], c_ball[1], 3, BLACK);
+	drawcircle(buff, ball_x, ball_y, 3, BLACK);
 		
 	fillrect(buff, 2, c_ai, 3, 11, BLACK);
 	fillrect(buff, 122, c_pl, 3, 11, BLACK);
@@ -112,11 +161,16 @@ int main(void)
 	init();
 	choose_mood();
 	draw_background();
-	int		ball_c[2]	= {63, 31};
+	
+	ball.x	= 63;
+	ball.y	= 13;
+	ball.dx = rand() %2;
+	ball.dy = rand() %2;
+	ball.r	= 3;
+	
 	int		paddle_ai	= 27;
 	int		paddle_pl	= 27;
-	int		ball_dx		= rand() %10 ;
-	int		ball_dy		= rand() %10 ;
+
 	_Bool	if_touched	= false; 
 	_Bool	if_dead		= false;
 
@@ -126,15 +180,15 @@ int main(void)
 		while(if_dead || if_touched){
 			draw_background();
 		}
-		ball_c[0]--;
-		ball_c[1]--;
+		//ball.x--;
+		//ball.y--;
 		//paddle_pl--;
 		//paddle_ai++;
-		//ball_c, ball_dx, ball_dy = move_ball();
+		move_ball(paddle_ai, paddle_pl);
 		//move_paddle_pl();
-		paddle_ai = move_paddle_ai(paddle_ai,ball_c);
-		paddle_pl = move_paddle_ai(paddle_pl,ball_c);
-		draw_now(paddle_ai,paddle_pl,ball_c);
+		paddle_ai = move_paddle_ai(paddle_ai,ball.y);
+		paddle_pl = move_paddle_ai(paddle_pl,ball.y);
+		draw_now(paddle_ai,paddle_pl,ball.x,ball.y);
 		_delay_ms(100);
 		clear_buffer(buff);
 	}
