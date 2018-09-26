@@ -79,9 +79,16 @@ int move_ball(int c,int x, int y){
 	return c, x, y;
 }
 
-int move_paddle_ai(int b_c, int p_c){
+int move_paddle_ai(int c_ai, int c_ball[2]){
 	
-	return p_c;
+	if(c_ball[1] > c_ai){
+		c_ai++;
+	}
+	else if(c_ball[1] < c_ai){
+		c_ai--;
+	}
+	
+	return c_ai;
 }
 
 int move_paddle_pl(int b_c, int p_c){
@@ -121,13 +128,14 @@ int main(void)
 		}
 		ball_c[0]--;
 		ball_c[1]--;
-		paddle_pl--;
-		paddle_ai++;
+		//paddle_pl--;
+		//paddle_ai++;
 		//ball_c, ball_dx, ball_dy = move_ball();
 		//move_paddle_pl();
-		//move_paddle_ai();
+		paddle_ai = move_paddle_ai(paddle_ai,ball_c);
+		paddle_pl = move_paddle_ai(paddle_pl,ball_c);
 		draw_now(paddle_ai,paddle_pl,ball_c);
-		//_delay_ms(1000);
+		_delay_ms(100);
 		clear_buffer(buff);
 	}
 }
