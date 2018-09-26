@@ -1,24 +1,20 @@
-/*bool    ball_move(uint8_t ball, uint8_t paddle){
-	
-	//update ball position
-	ball.x += ball.dx;
-	ball.y += ball.dy;
-	
+bool    ball_move(ball_t ball, paddle_t paddle[2]){
+
 	//ball boundary
 	uint8_t    ball_left = ball.x - ball.r;
 	uint8_t    ball_right = ball.x + ball.r;
 	uint8_t    ball_top = ball.y + ball.r;
 	uint8_t    ball_bottom = ball.y - ball.r;
 	
-	uint8_t    ai_paddle_top = paddle.x;
-	uint8_t    ai_paddle_bottom = paddle.x + paddle.h;
-	uint8_t    ai_paddle_left = paddle.y;
-	uint8_t    ai_paddle_right = paddle.y + paddle.w;	
+	uint8_t    ai_paddle_top = paddle[0].x;
+	uint8_t    ai_paddle_bottom = paddle[0].x + paddle[0].h;
+	uint8_t    ai_paddle_left = paddle[0].y;
+	uint8_t    ai_paddle_right = paddle[0].y + paddle[0].w;	
 	
-	uint8_t    player_paddle_top = paddle.x +  paddle.h;
-	uint8_t    player_paddle_bottom = paddle.x;
-	uint8_t    player_paddle_left = paddle.y + paddle.w;
-	uint8_t    player_paddle_right = paddle.y;
+	uint8_t    player_paddle_top = paddle[1].x +  paddle[1].h;
+	uint8_t    player_paddle_bottom = paddle[1].x;
+	uint8_t    player_paddle_left = paddle[1].y + paddle[1].w;
+	uint8_t    player_paddle_right = paddle[1].y;
 	
 	//hit judge flag
 	bool	   hit_ai_paddle;
@@ -27,9 +23,8 @@
 	//game finish flag
 	bool game_finish;
 	
-	rebound judge*/
+	/*rebound judge*/
 	//ball hit boundary
-	/*
 	if((ball_left < 0) || (ball_right > 63)){
 		ball.dy = -ball.dy;
 	}
@@ -44,4 +39,4 @@
 	}
 	
 	return game_finish;
-}*/
+}
