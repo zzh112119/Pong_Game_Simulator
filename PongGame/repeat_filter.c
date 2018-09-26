@@ -4,7 +4,7 @@
  * Created: 9/17/2018 3:18:00 PM
  * Author : zzh11
  */ 
-
+/*
 #include <avr/io.h>
 #include <stdio.h>
 #include "uart.h"
@@ -78,4 +78,4 @@ int main(void)
 		printf("ADC: %d\n", adc_value);
 		count = 0;
 	}
-}
+}*/
