@@ -6,3 +6,5 @@ lcd.c
 
 main.c
 
+touchDetect.c
+

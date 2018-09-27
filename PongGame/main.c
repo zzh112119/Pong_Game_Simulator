@@ -8,8 +8,9 @@
 #include <stdbool.h>
 #include <util/delay.h>
 #include <stdbool.h>
+#include "uart.h"
 #include "lcd.h"
-
+#include "touchDetect.h"
 
 #define FREQ 16000000
 #define BAUD 9600
@@ -20,6 +21,9 @@
 
 char displayChar = 0;
 char * a;
+
+uint8_t		play1_score = 1;
+uint8_t		play2_score = 0;
 
 struct balls {
 	uint8_t x;
@@ -71,16 +75,29 @@ void draw_background(void){
 	drawline(buff, 63 , 43, 63, 47, BLACK);
 	drawline(buff, 63 , 35, 63, 39, BLACK);
 
-	//
 }
 
-void choose_mood(void){}
+void choose_mood(void){
+	drawstring(buff, 5, 0, "Select Mode");
 	
+	drawrect(buff, 20, 12, 97, 16, BLACK);
+	drawstring(buff, 35, 2, "Touch");
+	
+	drawrect(buff, 20, 28, 97, 16, BLACK);
+	drawstring(buff, 35, 4, "Accelerometer");
+	
+	drawrect(buff, 20, 44, 97, 16, BLACK);
+	drawstring(buff, 35, 6, "2 Players");
+	
+}
+
 void score(void){
-	char player1_score[] = "Score: 0";
-	char player2_score[] = "Score: 0";
-	drawstring(buff, 15, 0, player1_score);
-	drawstring(buff, 76, 0, player2_score);
+	char player1_score_display[] = "Score:";
+	char player2_score_display[] = "Score:";
+	drawstring(buff, 15, 0, player1_score_display);
+	drawstring(buff, 76, 0, player2_score_display);
+	drawchar(buff, 50, 0, play1_score + 48);
+	drawchar(buff, 111, 0, play2_score + 48);
 }
 
 void move_ball(int c_ai, int c_pl){
@@ -171,18 +188,24 @@ void draw_now(int c_ai, int c_pl, int ball_x, int ball_y){
 
 int main(void)
 {
+	uart_init();
+
 	init();
+	clear_buffer(buff);
 	choose_mood();
+	write_buffer(buff);
 	
 	ball.x	= 63;
 	ball.y	= 13;
-	ball.dx = random() & 1 ? 1 : -1;
-	ball.dy = random() & 1 ? 1 : -1;
+	ball.dx = ((rand() % 2) & 1) ? 1 : -1;
+	ball.dy = ((rand() % 2) & 1) ? 1 : -1;
 	ball.r	= 3;
 	
 	int		paddle_ai	= 27;
 	int		paddle_pl	= 27;
 
+	int		touch_x		= 0;
+	int		touch_y		= 0;
 	_Bool	if_touched	= false;
 	_Bool	if_dead		= false;
 
@@ -190,10 +213,15 @@ int main(void)
 	while (1)
 	{
 		//while(if_dead || if_touched){
-			//draw_background();
+		//draw_background();
 		//}
 		score();
 		draw_background();
+		if (touch_detect()==1){
+			
+			printf("Touched");
+		}
+
 		//ball.x--;
 		//ball.y--;
 		//paddle_pl--;
@@ -207,4 +235,3 @@ int main(void)
 		clear_buffer(buff);
 	}
 }
-
