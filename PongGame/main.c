@@ -1,4 +1,10 @@
 #define F_CPU 16000000
+#define FREQ 16000000
+#define BAUD 9600
+#define HIGH 1
+#define LOW 0
+#define BUFFER 1024
+#define BLACK 0x000001
 
 #include <avr/interrupt.h>
 #include <avr/io.h>
@@ -12,12 +18,7 @@
 #include "lcd.h"
 #include "touchDetect.h"
 
-#define FREQ 16000000
-#define BAUD 9600
-#define HIGH 1
-#define LOW 0
-#define BUFFER 1024
-#define BLACK 0x000001
+
 
 char displayChar = 0;
 char * a;
@@ -25,7 +26,7 @@ char * a;
 uint8_t		play1_score = 1;
 uint8_t		play2_score = 0;
 
-struct balls {
+struct Balls {
 	uint8_t x;
 	uint8_t y;
 	uint8_t dx;
@@ -33,7 +34,14 @@ struct balls {
 	uint8_t r;
 };
 
-struct balls ball;
+enum Moods{
+	MOOD_TOUCH,
+	MOOD_ACCEL,
+	MOOD_TWOPL
+};
+
+
+struct Balls ball;
 
 void init(void){
 	//setting up the GPIO for back light
@@ -58,8 +66,9 @@ void init(void){
 	displayChar++;
 }
 
-void draw_background(void){
-	
+void draw_background(void)
+{
+
 	drawline(buff, 0 , 0, 127, 0, BLACK);
 	drawline(buff, 0 , 0, 0, 63, BLACK);
 	drawline(buff, 0 , 63, 127, 63, BLACK);
@@ -76,19 +85,70 @@ void draw_background(void){
 	drawline(buff, 63 , 35, 63, 39, BLACK);
 
 }
-
-void choose_mood(void){
-	drawstring(buff, 5, 0, "Select Mode");
-	
+void draw_mood(void){
+	clear_buffer(buff);
+	drawstring(buff, 5, 0, "Please Select Mode");
 	drawrect(buff, 20, 12, 97, 16, BLACK);
 	drawstring(buff, 35, 2, "Touch");
-	
 	drawrect(buff, 20, 28, 97, 16, BLACK);
 	drawstring(buff, 35, 4, "Accelerometer");
-	
 	drawrect(buff, 20, 44, 97, 16, BLACK);
-	drawstring(buff, 35, 6, "2 Players");
-	
+	drawstring(buff, 35, 6, "Two Players");
+	write_buffer(buff);
+}
+int choose_mood(void){
+	int temp_counter = 0;
+	int temp_x_array[30] = {0};
+	int temp_y_array[30] = {0};	
+	int temp_sum_x = 0;
+	int temp_sum_y = 0;
+	int avg_x = 0;
+	int avg_y = 0;
+
+	while(temp_counter<30){
+		if (touch_detect()==1){
+			temp_x_array[temp_counter-1] = touch_xvalue();
+			temp_y_array[temp_counter-1] = touch_yvalue();
+			temp_counter++;
+			_delay_ms(2);
+		}
+		else{
+			temp_counter=0;
+		}
+	}
+
+	for (int i=0; i<30; i++){
+		temp_sum_x += temp_x_array[i];
+		temp_sum_y += temp_y_array[i];	
+	}
+
+	avg_x = temp_sum_x/30;
+	avg_y = temp_sum_y/30;
+
+	if (360>=avg_y && avg_y>200){
+		clear_buffer(buff);
+		drawrect(buff, 20, 12, 97, 16, BLACK);
+		drawstring(buff, 35, 2, "Touch");
+		write_buffer(buff);
+		_delay_ms(1300);
+		return MOOD_TOUCH;
+	}
+	else if (480>=avg_y && avg_y>360){
+		clear_buffer(buff);
+		drawrect(buff, 20, 12, 97, 16, BLACK);
+		drawstring(buff, 35, 2, "Accelerometer");
+		write_buffer(buff);
+		_delay_ms(1300);
+		return MOOD_ACCEL;
+	}
+	else if (650>=avg_y && avg_y>480){
+		clear_buffer(buff);
+		drawrect(buff, 20, 12, 97, 16, BLACK);
+		drawstring(buff, 35, 2, "Two Players");
+		write_buffer(buff);
+		_delay_ms(1300);
+		return MOOD_TWOPL;
+	}
 }
 
 void score(void){
@@ -142,11 +202,17 @@ void move_ball(int c_ai, int c_pl){
 	
 	hit_player_paddle = (ball_bottom < player_paddle_top)
 	&& (ball.y >= player_paddle_left) && (ball.y <= player_paddle_right);
-	if(hit_ai_paddle || hit_player_paddle){
+	// if(hit_ai_paddle || hit_player_paddle){
+	// 	ball.dx = -ball.dx;
+	// 	PORTB &= ~(1 << PORTB0);
+	// 	PORTB |= (1 << PORTB2);
+	// 	PORTD &= ~(1 << PORTD7);
+	// }
+
+	if (hit_ai_paddle){ball.dx = -ball.dx;}
+	else if (hit_player_paddle){
 		ball.dx = -ball.dx;
-		PORTB &= ~(1 << PORTB0);
-		PORTB |= (1 << PORTB2);
-		PORTD &= ~(1 << PORTD7);
+		ball.x  = player_paddle_top + 3;
 	}
 	
 	//return game_finish;
@@ -170,17 +236,31 @@ int move_paddle_ai(int c_ai, int ball_y){
 	return c_ai;
 }
 
-int move_paddle_pl(int b_c, int p_c){
+int move_paddle_pl1(int x_value, int y_value, int p_c){
+	_Bool y_range = (y_value > 120) && (y_value < 680);
+	_Bool x_range = (x_value >580);
+	
+	if(touch_detect() == 1){
+		if(y_range && x_range){
+			if(y_value < ((p_c * 8) + 120)){
+				p_c--;
+			}
+			else if(y_value > (((p_c + 10) * 8) + 120)){
+				p_c++;
+			}
+		}
+	}
+
 	return p_c;
 }
 
-void draw_now(int c_ai, int c_pl, int ball_x, int ball_y){
-	
+void draw_now(int c_ai, int c_pl, int ball_x, int ball_y)
+{
+	clear_buffer(buff);
+	draw_background();
 	drawcircle(buff, ball_x, ball_y, 3, BLACK);
-	
 	fillrect(buff, 2, c_ai, 3, 11, BLACK);
 	fillrect(buff, 122, c_pl, 3, 11, BLACK);
-	
 	write_buffer(buff);
 	return 0;
 }
@@ -189,11 +269,7 @@ void draw_now(int c_ai, int c_pl, int ball_x, int ball_y){
 int main(void)
 {
 	uart_init();
-
 	init();
-	clear_buffer(buff);
-	choose_mood();
-	write_buffer(buff);
 	
 	ball.x	= 63;
 	ball.y	= 13;
@@ -209,29 +285,42 @@ int main(void)
 	_Bool	if_touched	= false;
 	_Bool	if_dead		= false;
 
-	
+	draw_mood();
+	_delay_ms(1000);
+	int game_mood = choose_mood();
+
 	while (1)
 	{
-		//while(if_dead || if_touched){
-		//draw_background();
-		//}
-		score();
-		draw_background();
-		if (touch_detect()==1){
-			
-			printf("Touched");
-		}
+		switch (game_mood){
+			case MOOD_TOUCH:
+				//while(if_dead || if_touched){
+				//draw_background();
+				//}
+				score();
+				if (touch_detect()==1){
+					touch_x = touch_xvalue();
+					touch_y = touch_yvalue();
+					printf("X: %d, Y: %d. \n", touch_x, touch_y);
+				}
 
-		//ball.x--;
-		//ball.y--;
-		//paddle_pl--;
-		//paddle_ai++;
-		move_ball(paddle_ai, paddle_pl);
-		//move_paddle_pl();
-		paddle_ai = move_paddle_ai(paddle_ai,ball.y);
-		paddle_pl = move_paddle_ai(paddle_pl,ball.y);
-		draw_now(paddle_ai,paddle_pl,ball.x,ball.y);
-		_delay_ms(40);
-		clear_buffer(buff);
+
+				paddle_pl = move_paddle_pl1(touch_x,touch_y,paddle_pl);
+				paddle_ai = move_paddle_ai(paddle_ai,ball.y);
+				move_ball(paddle_ai, paddle_pl);
+				draw_now(paddle_pl,paddle_ai,ball.x,ball.y);
+				break;
+
+			case MOOD_ACCEL:
+				draw_mood();
+				_delay_ms(500);
+				game_mood = choose_mood();
+				break;
+
+			case MOOD_TWOPL:
+				draw_mood();
+				_delay_ms(500);
+				game_mood = choose_mood();
+				break;
+		}
 	}
 }
