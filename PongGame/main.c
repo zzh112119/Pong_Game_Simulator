@@ -23,7 +23,7 @@
 char displayChar = 0;
 char * a;
 
-uint8_t		play1_score = 1;
+uint8_t		play1_score = 0;
 uint8_t		play2_score = 0;
 
 struct Balls {
@@ -64,6 +64,14 @@ void init(void){
 	clear_buffer(buff);
 	_delay_ms(5000);
 	displayChar++;
+}
+
+void ball_init(void){
+	ball.x	= 63;
+	ball.y	= 13;
+	ball.dx = ((rand() % 2) & 1) ? 1 : -1;
+	ball.dy = ((rand() % 2) & 1) ? 1 : -1;
+	ball.r	= 3;
 }
 
 void draw_background(void)
@@ -160,7 +168,10 @@ void score(void){
 	drawchar(buff, 111, 0, play2_score + 48);
 }
 
-void move_ball(int c_ai, int c_pl){
+int move_ball(int c_ai, int c_pl){
+	
+	int win = 0;
+	
 	//update ball position
 	ball.x += ball.dx;
 	ball.y += ball.dy;
@@ -170,17 +181,7 @@ void move_ball(int c_ai, int c_pl){
 	uint8_t	ball_right = ball.y + ball.r;
 	uint8_t	ball_top = ball.x + ball.r;
 	uint8_t	ball_bottom = ball.x - ball.r;
-	
-	uint8_t	ai_paddle_top = 122 - 1;
-	uint8_t	ai_paddle_bottom = 122 + 1;
-	uint8_t	ai_paddle_left = c_ai + 5;
-	uint8_t	ai_paddle_right = c_ai - 5;
-	
-	uint8_t	player_paddle_top = 2 + 3;
-	uint8_t	player_paddle_bottom = 2 - 1;
-	uint8_t	player_paddle_left = c_pl - 5;
-	uint8_t	player_paddle_right = c_pl + 5;
-	
+
 	//hit judge flag
 	_Bool	hit_ai_paddle;
 	_Bool	hit_player_paddle;
@@ -192,30 +193,45 @@ void move_ball(int c_ai, int c_pl){
 	//ball hit boundary
 	if((ball_left <= 0) || (ball_right >= 63)){
 		ball.dy = -ball.dy;
+		beep_tone();
 		PORTB &= ~(1 << PORTB0);
 		PORTB &= ~(1 << PORTB2);
 		PORTD |= (1 << PORTD7);
 	}
-	//ball hit paddle
-	hit_ai_paddle = (ball_top > ai_paddle_top)
-	&& (ball.y >= ai_paddle_right) && (ball.y <= ai_paddle_left);
-	
-	hit_player_paddle = (ball_bottom < player_paddle_top)
-	&& (ball.y >= player_paddle_left) && (ball.y <= player_paddle_right);
-	// if(hit_ai_paddle || hit_player_paddle){
-	// 	ball.dx = -ball.dx;
-	// 	PORTB &= ~(1 << PORTB0);
-	// 	PORTB |= (1 << PORTB2);
-	// 	PORTD &= ~(1 << PORTD7);
-	// }
 
-	if (hit_ai_paddle){ball.dx = -ball.dx;}
+	hit_ai_paddle = (ball.x >= (122 - ball.r))
+	&& (ball.y >= c_ai - 1) && (ball.y <= c_ai + 11);
+	
+	hit_player_paddle = (ball.x <= (5 + ball.r))
+	&& (ball.y >= c_pl - 1) && (ball.y <= c_pl + 11);
+
+	if (hit_ai_paddle){
+		ball.dx = -ball.dx;
+		ball.x  = ball.x - 3;
+		beep_tone();
+		PORTB &= ~(1 << PORTB0);
+		PORTB |= (1 << PORTB2);
+		PORTD &= ~(1 << PORTD7);
+	}
 	else if (hit_player_paddle){
 		ball.dx = -ball.dx;
-		ball.x  = player_paddle_top + 3;
+		ball.x  = ball.x + 3;
+		beep_tone();
+		PORTB &= ~(1 << PORTB0);
+		PORTB |= (1 << PORTB2);
+		PORTD &= ~(1 << PORTD7);
 	}
 	
-	//return game_finish;
+	
+	if(ball_top >= 126){
+		play1_score ++;
+		win = 1;
+	}
+	if(ball_top <= 2){
+		play2_score ++;
+		win = 1;
+	}
+	return win;
 }
 
 int move_paddle_ai(int c_ai, int ball_y){
@@ -237,7 +253,7 @@ int move_paddle_ai(int c_ai, int ball_y){
 }
 
 int move_paddle_pl1(int x_value, int y_value, int p_c){
-	_Bool y_range = (y_value > 120) && (y_value < 680);
+	_Bool y_range = (y_value > 120) && (y_value < 630);
 	_Bool x_range = (x_value >580);
 	
 	if(touch_detect() == 1){
@@ -254,10 +270,45 @@ int move_paddle_pl1(int x_value, int y_value, int p_c){
 	return p_c;
 }
 
+int move_paddle_pl2(int x_value, int y_value, int p_c){
+	_Bool y_range = (y_value > 120) && (y_value < 630);
+	_Bool x_range = (x_value < 380);
+	if(touch_detect() == 1){
+		if(y_range && x_range){
+			if(y_value < ((p_c * 8) + 120)){
+				p_c--;
+			}
+			else if(y_value > (((p_c + 10) * 8) + 120)){
+				p_c++;
+			}
+		}
+	}
+
+	return p_c;
+}
+
+int move_paddle_pl1_acc(int ADC_value, int p_c){
+	
+	if(ADC_value > 360){
+		p_c++;
+	}
+	else if(ADC_value < 300){
+		p_c--;
+	}
+	if(p_c < 2){
+		p_c++;
+	}
+	if(p_c > 50){
+		p_c--;
+	}
+	return p_c;
+}
+
 void draw_now(int c_ai, int c_pl, int ball_x, int ball_y)
 {
 	clear_buffer(buff);
 	draw_background();
+	score();
 	drawcircle(buff, ball_x, ball_y, 3, BLACK);
 	fillrect(buff, 2, c_ai, 3, 11, BLACK);
 	fillrect(buff, 122, c_pl, 3, 11, BLACK);
@@ -265,62 +316,182 @@ void draw_now(int c_ai, int c_pl, int ball_x, int ball_y)
 	return 0;
 }
 
+//buzzer
+void beep_tone(){
+	DDRB |= (1 << PORTB1);   // set Port B pin 1 to output
+	TCCR1A |= (1 << COM1A0);
+	TCCR1B |= (1 << CS10) | (1 << WGM12);
+	OCR1A =  1000; 
+	_delay_ms(50);
+	TCCR1A &= ~(1 << COM1A0);
+}
+
+
+/*** accelerator ***/
+int compare_function(const void *a, const void *b)
+{
+	int *x = (int*)a;
+	int *y = (int*)b;
+	return *x-*y;
+}
+
+int repeated_filter(int t_array[])
+{
+	int n = sizeof(t_array)/sizeof(*t_array);
+	qsort(t_array, n, sizeof(*t_array), compare_function);
+	int max_count = 1, res = t_array[0], curr_count = 1;
+	for (int i=1; i<n; i++)
+	{	if (t_array[i]==t_array[i-1])
+		{curr_count++;}
+		else{
+			if(curr_count>max_count){
+				max_count = curr_count;
+				res = t_array[i-1];
+			}
+			curr_count = 1;
+		}
+	}
+	
+	if(curr_count>max_count){
+		max_count = curr_count;
+		res = t_array[n-1];
+	}
+	return res;
+}
+
+int filtered_ADC(void){
+	
+	DDRC   |= 0x0;	// init PORTC to be all inputs
+	PORTC  &= ~(1 << PORTC4); // set PC0 active high
+	
+	ADMUX  |= (1 << REFS0); //AVcc refer
+	ADMUX  |= 0x04;
+	ADCSRA |= (1 << ADEN); //turn on ADC
+	ADCSRA |= (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); //division factor = 128, ADC works in
+	ADCSRA |= (1 << ADATE); //Signal source, in this case is the free-running
+	ADCSRA |= (1 << ADSC); //Start conversation
+	ADCSRB &= ~((1 << ADTS2)|(1 << ADTS1)|(1 << ADTS0));//ADC in free-running mode
+		
+	int count = 0;
+	int adc_value = 0;
+	static int adc_array[10] = { 0,0,0,0,0,0,0,0,0,0 };
+	while (count<10){
+		adc_array[count] = ADC;
+
+		count++;
+	}
+	adc_value = repeated_filter(adc_array);
+}
+
+void game_over(void){
+	clear_buffer(buff);
+	drawrect(buff, 20, 12, 97, 16, BLACK);
+	drawstring(buff, 35, 2, "Game Over");
+	drawrect(buff, 20, 44, 97, 16, BLACK);
+	drawstring(buff, 35, 6, "Restart");
+	write_buffer(buff);
+}
+
+
 
 int main(void)
 {
 	uart_init();
-	init();
-	
-	ball.x	= 63;
-	ball.y	= 13;
-	ball.dx = ((rand() % 2) & 1) ? 1 : -1;
-	ball.dy = ((rand() % 2) & 1) ? 1 : -1;
-	ball.r	= 3;
+	init();	
+	ball_init();
 	
 	int		paddle_ai	= 27;
 	int		paddle_pl	= 27;
+	int		paddle_pl2	= 27;
 
 	int		touch_x		= 0;
 	int		touch_y		= 0;
 	_Bool	if_touched	= false;
 	_Bool	if_dead		= false;
 
+	int		ADC_value	= 0;
+	int		next_round	= 0;
+	
 	draw_mood();
 	_delay_ms(1000);
 	int game_mood = choose_mood();
+	
+	sei();
+
 
 	while (1)
 	{
-		switch (game_mood){
-			case MOOD_TOUCH:
-				//while(if_dead || if_touched){
-				//draw_background();
-				//}
-				score();
-				if (touch_detect()==1){
-					touch_x = touch_xvalue();
-					touch_y = touch_yvalue();
-					printf("X: %d, Y: %d. \n", touch_x, touch_y);
+		if((play1_score < 3) && (play2_score < 3)){
+			if(next_round == 0){
+				switch (game_mood){
+					case MOOD_TOUCH:
+						//while(if_dead || if_touched){
+						//draw_background();
+						//}
+						if (touch_detect()==1){
+							touch_x = touch_xvalue();
+							touch_y = touch_yvalue();
+						}
+
+
+						paddle_pl = move_paddle_pl1(touch_x,touch_y,paddle_pl);
+						paddle_ai = move_paddle_ai(paddle_ai,ball.y);
+						next_round = move_ball(paddle_ai, paddle_pl);
+						draw_now(paddle_pl,paddle_ai,ball.x,ball.y);
+						break;
+
+					case MOOD_ACCEL:
+						ADC_value = filtered_ADC();
+						paddle_pl = move_paddle_pl1_acc(ADC_value, paddle_pl);
+						paddle_ai = move_paddle_ai(paddle_ai,ball.y);
+						next_round = move_ball(paddle_ai, paddle_pl);
+						draw_now(paddle_pl,paddle_ai,ball.x,ball.y);
+						break;
+
+					case MOOD_TWOPL:
+						//while(if_dead || if_touched){
+						//draw_background();
+						//}
+						if (touch_detect()==1){
+							touch_x = touch_xvalue();
+							touch_y = touch_yvalue();
+						}
+
+
+						paddle_pl = move_paddle_pl1(touch_x,touch_y,paddle_pl);
+						paddle_pl2 = move_paddle_pl2(touch_x,touch_y,paddle_pl2);
+						next_round = move_ball(paddle_pl2, paddle_pl);
+						draw_now(paddle_pl,paddle_pl2,ball.x,ball.y);		
+						break;
 				}
-
-
-				paddle_pl = move_paddle_pl1(touch_x,touch_y,paddle_pl);
-				paddle_ai = move_paddle_ai(paddle_ai,ball.y);
-				move_ball(paddle_ai, paddle_pl);
-				draw_now(paddle_pl,paddle_ai,ball.x,ball.y);
-				break;
-
-			case MOOD_ACCEL:
+				_delay_ms(10);
+			}
+			else{
+				ball_init();
+				next_round = 0;
+				_delay_ms(1000);
+			}
+		}
+		else{
+			game_over();
+			_delay_ms(500);
+			touch_y = touch_yvalue();			
+			 if (650>=touch_y && touch_y>480){
+				 clear_buffer(buff);
+				drawrect(buff, 20, 12, 97, 16, BLACK);
+				drawstring(buff, 35, 2, "Restart");
+				write_buffer(buff);
+				 _delay_ms(1300);
 				draw_mood();
-				_delay_ms(500);
+				_delay_ms(1000);
 				game_mood = choose_mood();
-				break;
-
-			case MOOD_TWOPL:
-				draw_mood();
-				_delay_ms(500);
-				game_mood = choose_mood();
-				break;
+				play1_score = 0;
+				play2_score = 0;
+				paddle_ai	= 27;
+				paddle_pl	= 27;
+				paddle_pl2	= 27;
+				printf("game_mood: %d",game_mood);
+			 }
 		}
 	}
 }
